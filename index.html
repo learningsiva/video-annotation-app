@@ -5,19 +5,20 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Unity WebGL Player | Annotations_Generator</title>
     <style>
-      /* 🔥 FIX 1: Reset the page to have no borders or scrollbars */
+      /* 🔥 FIX 1: Force page to match Screen Height exactly (No Scrollbars) */
       html, body { 
           width: 100%;
-          height: 120%;
+          height: 100vh; /* 'vh' = Viewport Height. Fits screen exactly. */
           margin: 0; 
           padding: 0; 
-          overflow: hidden; 
-          background-color: #000000; /* Black background looks cleaner than white/yellow */
+          overflow: hidden; /* Cuts off anything that tries to overflow */
+          background-color: #000000; 
       }
-      /* 🔥 FIX 2: Force the canvas to fill the parent container completely */
+
+      /* 🔥 FIX 2: Force the canvas to fill that 100% box */
       #unity-canvas { 
           width: 100%; 
-          height: 120%; 
+          height: 100%; 
           position: absolute; 
           top: 0; 
           left: 0; 
@@ -42,7 +43,7 @@
         productName: "Annotations_Generator",
         productVersion: "0.1",
         
-        // 🔥 FIX 4: Use High DPI for sharp text on laptops/monitors
+        // 🔥 FIX 3: Use High DPI for sharp text on laptops/monitors
         devicePixelRatio: dpr, 
       }).then((unityInstance) => {
         // Optional: Any code to run after game loads

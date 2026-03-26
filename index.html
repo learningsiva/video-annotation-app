@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en-us">
   <head>
@@ -5,94 +6,55 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Unity WebGL Player | Annotations_Generator</title>
     <style>
-      html, body {
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-        background-color: #000000;
+      /* 🔥 FIX 1: Reset the page to have no borders or scrollbars */
+      html, body { 
+          width: 100%;
+          height: 100%;
+          margin: 0; 
+          padding: 0; 
+          overflow: hidden; 
+          background-color: #000000; /* Black background looks cleaner than white/yellow */
       }
-      #unity-canvas {
-        width: 100%;
-        height: 100%;
-        position: absolute;
-        top: 0;
-        left: 0;
-        display: block;
+      /* 🔥 FIX 2: Force the canvas to fill the parent container completely */
+      #unity-canvas { 
+          width: 100%; 
+          height: 100%; 
+          position: absolute; 
+          top: 0; 
+          left: 0; 
+          display: block;
       }
     </style>
   </head>
   <body>
     <canvas id="unity-canvas" tabindex="-1"></canvas>
+    
     <script src="Build/pick_video_web.loader.js"></script>
     <script>
+      // Detect High DPI (Retina) screens for sharp text
+      var dpr = window.devicePixelRatio || 1;
 
-      var canvas = document.querySelector("#unity-canvas");
-
-      // ================================================================
-      // FIX 4 — PHANTOM TAP (JS side)
-      // Chrome fires this sequence for ONE physical click:
-      //   pointerdown → mousedown → mouseup → click (synthetic)
-      // All of these reach Unity and can call OnVideoTapped multiple times.
-      //
-      // Strategy: after the first pointerdown, block ALL further pointer
-      // events on the canvas for 500ms. This is done at the JS capture
-      // phase (before Unity ever sees the events) so it is 100% reliable.
-      // ================================================================
-      var blockUntil = 0;
-      var BLOCK_MS   = 500;
-
-      ['pointerdown','mousedown','mouseup','click','touchstart','touchend','pointerup'].forEach(function(evtName) {
-        canvas.addEventListener(evtName, function(e) {
-          var now = Date.now();
-          if (evtName === 'pointerdown' || evtName === 'touchstart') {
-            if (now >= blockUntil) {
-              // First real event — let through, block everything after it
-              blockUntil = now + BLOCK_MS;
-            } else {
-              // Duplicate pointerdown in block window — kill it
-              e.stopImmediatePropagation();
-              e.preventDefault();
-            }
-          } else {
-            // mousedown / mouseup / click / touchend — block if in window
-            if (now < blockUntil) {
-              e.stopImmediatePropagation();
-              e.preventDefault();
-            }
-          }
-        }, true); // capture phase — intercepted before Unity sees it
-      });
-
-      // ================================================================
-      // FIX 3 — MEMORY WALL
-      // devicePixelRatio: 1 (NOT window.devicePixelRatio)
-      //
-      // Using dpr=2 on Retina/HiDPI screens makes Unity render the canvas
-      // at 2x or 3x its CSS size in WebGL pixels. For a 1920x1080 screen
-      // with dpr=2, Unity tries to render at 3840x2160 — this exceeds
-      // Chrome's WebGL memory limits and causes the browser to kill the
-      // video process randomly ("Memory Wall" random stop bug).
-      //
-      // Setting devicePixelRatio: 1 keeps rendering at CSS pixel size —
-      // no memory overload, stable video playback.
-      // ================================================================
-      createUnityInstance(canvas, {
-        dataUrl:            "Build/pick_video_web.data.unityweb",
-        frameworkUrl:       "Build/pick_video_web.framework.js.unityweb",
-        codeUrl:            "Build/pick_video_web.wasm.unityweb",
+      createUnityInstance(document.querySelector("#unity-canvas"), {
+        dataUrl: "Build/pick_video_web.data.unityweb",
+        frameworkUrl: "Build/pick_video_web.framework.js.unityweb",
+        codeUrl: "Build/pick_video_web.wasm.unityweb",
         streamingAssetsUrl: "StreamingAssets",
-        companyName:        "DefaultCompany",
-        productName:        "Annotations_Generator",
-        productVersion:     "0.1",
-        devicePixelRatio:   1,   // FIX 3: prevents memory overload on HiDPI
-      }).then(function(unityInstance) {
-        // loaded
-      }).catch(function(message) {
+        companyName: "DefaultCompany",
+        productName: "Annotations_Generator",
+        productVersion: "0.1",
+        
+        // 🔥 FIX 4: Use High DPI for sharp text on laptops/monitors
+        devicePixelRatio: dpr, 
+      }).then((unityInstance) => {
+        // Optional: Any code to run after game loads
+      }).catch((message) => {
         alert(message);
       });
-
+    </script>
+  </body>
+</html>
+de low DPI rendering on high DPI displays.
+      });
     </script>
   </body>
 </html>

@@ -25,7 +25,6 @@
   </head>
   <body>
     <canvas id="unity-canvas" tabindex="-1"></canvas>
-
     <script src="Build/pick_video_web.loader.js"></script>
     <script>
 
@@ -34,55 +33,47 @@
       // ------------------------------------------------------------------
       // CHROME DOUBLE-EVENT FIX
       //
-      // Chrome fires multiple browser events for one physical click/tap:
-      //   pointerdown → mousedown → mouseup → click (synthetic)
-      // All of these can reach Unity and fire OnVideoTapped multiple times.
+      // Chrome fires this sequence for ONE physical click:
+      //   pointerdown → mousedown → mouseup → click
+      // All of these reach Unity and can call OnVideoTapped multiple times.
       //
-      // We block ALL pointer events on the canvas for 400ms after the
-      // first pointerdown. This is done at the JS capture phase (before
-      // Unity ever sees the events) so it is 100% reliable.
-      //
-      // We use pointerdown as the trigger (not click) because:
-      // - pointerdown fires first and is the "real" user intent
-      // - All subsequent events (mouseup, click) within 400ms are duplicates
+      // Fix: after the first pointerdown, block ALL further pointer events
+      // on the canvas for 500ms. Done at JS capture phase so Unity never
+      // sees the duplicates.
       // ------------------------------------------------------------------
       var blockUntil = 0;
-      var BLOCK_MS   = 400;
+      var BLOCK_MS   = 500;
 
-      // Intercept ALL pointer-related events in capture phase
-      ['pointerdown', 'mousedown', 'mouseup', 'click', 'touchstart', 'touchend'].forEach(function(eventName) {
-        canvas.addEventListener(eventName, function(e) {
+      var eventsToBlock = ['pointerdown','mousedown','mouseup','click','touchstart','touchend','pointerup'];
+
+      eventsToBlock.forEach(function(evtName) {
+        canvas.addEventListener(evtName, function(e) {
           var now = Date.now();
 
-          if (eventName === 'pointerdown' || eventName === 'touchstart') {
-            // This is the FIRST real event — allow it through and block rest
+          if (evtName === 'pointerdown' || evtName === 'touchstart') {
             if (now >= blockUntil) {
-              blockUntil = now + BLOCK_MS; // block next 400ms of events
-              // Allow this first event through to Unity normally
+              // First real event — allow through, block everything after
+              blockUntil = now + BLOCK_MS;
             } else {
-              // A pointerdown inside the block window = duplicate, kill it
+              // Duplicate pointerdown within block window — kill it
               e.stopImmediatePropagation();
               e.preventDefault();
             }
           } else {
-            // mousedown, mouseup, click, touchend — always block if in window
+            // All follow-up events — block if within window
             if (now < blockUntil) {
               e.stopImmediatePropagation();
               e.preventDefault();
             }
           }
-        }, true); // capture phase = intercept before Unity
+        }, true); // capture phase — before Unity sees it
       });
 
       // ------------------------------------------------------------------
       // devicePixelRatio: 1
-      //
-      // Using dpr=2 on Retina/HiDPI screens makes Unity's coordinate system
-      // misalign with the CSS layout. This causes:
-      //   - Bounding box spawning in the wrong position
-      //   - Input events hitting wrong areas
-      // Set to 1 for correct input. Sharp text is less important than
-      // correct tap behaviour for this annotation tool.
+      // Using dpr=2 causes Unity's coordinate system to mismatch with CSS
+      // layout on HiDPI screens — taps register in wrong positions and
+      // bounding boxes appear in wrong places.
       // ------------------------------------------------------------------
       createUnityInstance(canvas, {
         dataUrl:            "Build/pick_video_web.data.unityweb",
@@ -94,7 +85,7 @@
         productVersion:     "0.1",
         devicePixelRatio:   1,
       }).then((unityInstance) => {
-        // loaded
+        // loaded successfully
       }).catch((message) => {
         alert(message);
       });

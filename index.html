@@ -5,88 +5,40 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Unity WebGL Player | Annotations_Generator</title>
     <style>
-      /* --- CSS FIXES FOR ALL DEVICES --- */
       html, body { 
-          width: 100%;
-          height: 100%;
-          margin: 0; 
-          padding: 0; 
-          overflow: hidden; 
-          background-color: #000; /* Cleaner transition than white/yellow */
+          width: 100%; height: 100%; margin: 0; padding: 0; 
+          overflow: hidden; background-color: #000;
+          /* 🔥 FIX: Prevents the "Double-Tap to Zoom" gesture on mobile Chrome */
+          touch-action: manipulation; 
       }
-      
       #unity-canvas { 
-          width: 100% !important; 
-          height: 100% !important; 
-          position: absolute; 
-          top: 0; 
-          left: 0; 
-          display: block;
-          /* Prevents accidental text selection or blue highlights on mobile tap */
+          width: 100% !important; height: 100% !important; 
+          position: absolute; top: 0; left: 0; display: block;
+          /* 🔥 FIX: Prevents blue tap highlight box */
           -webkit-tap-highlight-color: rgba(0,0,0,0);
-      }
-
-      #loading-overlay {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: #000;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          z-index: 10;
-          color: white;
-          font-family: sans-serif;
       }
     </style>
   </head>
   <body>
-    <div id="loading-overlay">Loading Video Application...</div>
     <canvas id="unity-canvas" tabindex="-1"></canvas>
-    
-    <script src="Build/pick_video_web.loader.js"></script>
+    <script src="Build/webgl build.loader.js"></script>
     <script>
       var canvas = document.querySelector("#unity-canvas");
-      var loadingOverlay = document.querySelector("#loading-overlay");
-
-      // --- DPR FIX (Problem 3) ---
-      // We cap the ratio at 2.0. On 3x or 4x screens (like iPhone Pro), 
-      // Unity tries to render too many pixels, which crashes the Video memory in Chrome.
-      var dpr = window.devicePixelRatio || 1;
-      if (dpr > 2) dpr = 2; 
+      // 🔥 FIX: Capping DPR strictly to prevent memory-related random stops
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
 
       createUnityInstance(canvas, {
-        dataUrl: "Build/pick_video_web.data.unityweb",
-        frameworkUrl: "Build/pick_video_web.framework.js.unityweb",
-        codeUrl: "Build/pick_video_web.wasm.unityweb",
+        dataUrl: "Build/webgl build.data.unityweb",
+        frameworkUrl: "Build/webgl build.framework.js.unityweb",
+        codeUrl: "Build/webgl build.wasm.unityweb",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DefaultCompany",
         productName: "Annotations_Generator",
         productVersion: "0.1",
         devicePixelRatio: dpr, 
-      }).then((unityInstance) => {
-          loadingOverlay.style.display = "none"; // Hide loading when ready
-          canvas.focus();
-      }).catch((message) => {
-          alert("Build Error: " + message);
-      });
-
-      // --- FOCUS FIX ---
-      // Ensures the Unity app regains focus if the user clicks the browser address bar
-      window.addEventListener('click', function() {
+      }).then((instance) => {
           canvas.focus();
       });
-
-      // --- CHROME AUDIO/VIDEO FIX ---
-      // Chrome blocks video audio until the user interacts with the page.
-      document.addEventListener('touchstart', function() {
-          if (window.AudioContext || window.webkitAudioContext) {
-              var context = new (window.AudioContext || window.webkitAudioContext)();
-              if (context.state === 'suspended') { context.resume(); }
-          }
-      }, {once: true});
     </script>
   </body>
 </html>

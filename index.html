@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en-us">
   <head>
@@ -6,54 +5,89 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Unity WebGL Player | Annotations_Generator</title>
     <style>
-      /* 🔥 FIX 1: Reset the page to have no borders or scrollbars */
-      html, body { 
+      /* Reset page — no borders or scrollbars */
+      html, body {
           width: 100%;
           height: 100%;
-          margin: 0; 
-          padding: 0; 
-          overflow: hidden; 
-          background-color: #000000; /* Black background looks cleaner than white/yellow */
+          margin: 0;
+          padding: 0;
+          overflow: hidden;
+          background-color: #000000;
       }
-      /* 🔥 FIX 2: Force the canvas to fill the parent container completely */
-      #unity-canvas { 
-          width: 100%; 
-          height: 100%; 
-          position: absolute; 
-          top: 0; 
-          left: 0; 
+      /* Force canvas to fill container */
+      #unity-canvas {
+          width: 100%;
+          height: 100%;
+          position: absolute;
+          top: 0;
+          left: 0;
           display: block;
       }
     </style>
   </head>
   <body>
     <canvas id="unity-canvas" tabindex="-1"></canvas>
-    
+
     <script src="Build/pick_video_web.loader.js"></script>
     <script>
-      // Detect High DPI (Retina) screens for sharp text
       var dpr = window.devicePixelRatio || 1;
 
       createUnityInstance(document.querySelector("#unity-canvas"), {
-        dataUrl: "Build/pick_video_web.data.unityweb",
-        frameworkUrl: "Build/pick_video_web.framework.js.unityweb",
-        codeUrl: "Build/pick_video_web.wasm.unityweb",
+        dataUrl:            "Build/pick_video_web.data.unityweb",
+        frameworkUrl:       "Build/pick_video_web.framework.js.unityweb",
+        codeUrl:            "Build/pick_video_web.wasm.unityweb",
         streamingAssetsUrl: "StreamingAssets",
-        companyName: "DefaultCompany",
-        productName: "Annotations_Generator",
-        productVersion: "0.1",
-        
-        // 🔥 FIX 4: Use High DPI for sharp text on laptops/monitors
-        devicePixelRatio: dpr, 
+        companyName:        "DefaultCompany",
+        productName:        "Annotations_Generator",
+        productVersion:     "0.1",
+
+        // High DPI for sharp rendering on retina/4K screens
+        devicePixelRatio: dpr,
+
       }).then((unityInstance) => {
-        // Optional: Any code to run after game loads
+
+        // ===================================================================
+        // FIX: SPEED FLASH — browser-level playbackRate enforcement
+        // ===================================================================
+        // Unity's VideoPlayer in WebGL is a thin wrapper around a <video>
+        // element. Every time Play() is called, Chrome internally resets
+        // playbackRate back to 1.0 before Unity gets its next frame tick.
+        // The C# ApplySpeedAfterDelay() coroutine catches it after 1 frame,
+        // but those frames at 1.0x are visible as a "speed flash" to the user.
+        //
+        // This listener fires at the DOM capture phase (before Unity's own
+        // handlers) on every 'play' event. setTimeout(0) queues the rate
+        // correction AFTER Chrome's internal reset but still within the same
+        // JS event loop cycle — so by the time the browser paints the first
+        // frame, it's already at 0.75x. The user sees no flash at all.
+        // ===================================================================
+        document.addEventListener('play', function(e) {
+          if (e.target.tagName === 'VIDEO') {
+            setTimeout(function() {
+              e.target.playbackRate = 0.75;
+            }, 0);
+          }
+        }, true); // capture=true: fires before Unity's own event handlers
+
+        // ===================================================================
+        // OPTIONAL: Also catch ratechange events as a secondary safety net.
+        // If anything (browser policy, seek, autoplay guard) resets the rate
+        // back to 1.0 while the video is playing, this corrects it instantly.
+        // The _settingRate guard prevents an infinite ratechange → set → ratechange loop.
+        // ===================================================================
+        var _settingRate = false;
+        document.addEventListener('ratechange', function(e) {
+          if (e.target.tagName === 'VIDEO' && !_settingRate && !e.target.paused) {
+            if (e.target.playbackRate !== 0.75) {
+              _settingRate = true;
+              e.target.playbackRate = 0.75;
+              _settingRate = false;
+            }
+          }
+        }, true);
+
       }).catch((message) => {
         alert(message);
-      });
-    </script>
-  </body>
-</html>
-de low DPI rendering on high DPI displays.
       });
     </script>
   </body>
